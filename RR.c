@@ -5,8 +5,11 @@
 #include <string.h>
 #define MAX_PROC 10 
 #define MAX_TIME 40
+#define TIME_SLICE 3
 
 void push_ready_queue();
+void pull_out_ready_queue();
+void serving();
 
 struct process {
     char pid;
@@ -15,28 +18,24 @@ struct process {
 };
 
 int i = 0, 
-   
     num_proc = 4,
     curr_second = 0,  
     is_done = 0,
     proc_pointer = 0,
     curr_proc_pointer = 0,
     top_stack = 0,
-    is_serving = 0;
+    is_serving = 0,
+    done_serving = 0,
+    slice_counter = 0;
 
 char timeable[MAX_TIME];
 
 struct process ready_queue[MAX_PROC+1]; // +1 is to have a empty element used to copy into elements to be removed.
 
 
-
 int main(){
     struct process cpu_process[num_proc];
-    struct process serving_proc;
-
-    // for(i = 0; i < MAX_PROC; i++){
-    //     ready_queue[i] = NULL;
-    // }
+    struct process serve_process;
 
     memset(ready_queue, '\0', sizeof(ready_queue)); // set all ready_queue elements to '0' to define a element is empty
 
@@ -70,18 +69,14 @@ int main(){
             proc_pointer++;
         }
 
-        // if(is_serving == 1){
+        if(is_serving == 1){
+           serving();
+        }else if(is_serving != 1){
+            serve_process = pull_out_ready_queue(0);
 
-        // }else if(is_serving == 0){
-        //     if(){
-                
-        //     }
-        // }
-
-        // if(ready_queue[top_stack].pid == 0){ // check if 
-        //     printf("\n%c", ready_queue[top_stack-1].pid);
-        //     printf("\nempty at %d", top_stack);
-        // }
+            is_serving = 1;
+            serving(); 
+        }
 
         printf("\n%d: ", curr_second);
         for(i = 0; ready_queue[i].pid != 0; i++){
@@ -103,7 +98,6 @@ void push_ready_queue(struct process this_proc){
     
     if(top_stack == MAX_PROC - 1){
         printf("Stack overflow!");
-        return;
     }
     
     ready_queue[top_stack] = this_proc;
@@ -111,3 +105,36 @@ void push_ready_queue(struct process this_proc){
 
 }
 
+struct pull_out_ready_queue(int array_index){
+    struct process this_proc = ready_queue[array_index];
+
+    for(; array_index < MAX_PROC; array_index++){
+        ready_queue[array_index] = ready_queue[array_index+1];
+    }
+
+    return this_proc;
+}
+
+void serving(){
+
+    if(done_serving != 1){
+        if(slice_counter != 3 && (serve_process.servicetime != 0){
+            serve_process.servicetime--;
+            is_serving = 1;
+            done_serving = 0;
+            slice_counter++;
+        }else if(serve_process.servicetime == 0){
+            done_serving = 1;
+            is_serving = 0;
+            slice_counter = 0;
+        }else if(slice_counter == 3 && serve_process.servicetime != 0){
+            push_ready_queue(serve_process);
+            done_serving = 1;
+            is_serving = 0;
+            slice_counter = 0;
+        }else{
+            printf("Serving error.");
+        }
+    }
+
+}
