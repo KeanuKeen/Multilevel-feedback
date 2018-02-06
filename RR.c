@@ -13,6 +13,7 @@ void push_ready_queue();
 struct process pull_out_ready_queue(int array_index);
 void serving();
 int probability_rand();
+int get_array_slot();
 
 struct process {
     char pid;
@@ -32,11 +33,12 @@ int i = 0,
     slice_counter = 0,
     gap_arrival = 0,
     final_val,
-    rand_val;
+    rand_val,
+    prev_ready_queue = 0;
 
 char timeable[MAX_TIME];
 
-struct process ready_queue[MAX_PROC+1];
+struct process ready_queue[10][MAX_PROC+1];
 struct process serve_process; // +1 is to have a empty element used to copy into elements to be removed.
 
 
@@ -45,7 +47,7 @@ int main(){
 
     srand (time(NULL));
 
-    memset(ready_queue, '\0', sizeof(ready_queue)); // set all ready_queue elements to '0' to define a element is empty
+    memset(ready_queue[0], '\0', sizeof(ready_queue[0])); // set all ready_queue elements to '0' to define a element is empty
 
     cpu_process[0].pid = 'A';
     cpu_process[1].pid = 'B';
@@ -53,16 +55,13 @@ int main(){
     cpu_process[3].pid = 'D';
 
     cpu_process[0].arrivaltime = 0;
-    for(i = 1; i < num_proc; i++){
-        gap_arrival = probability_rand();
-        cpu_process[i].arrivaltime = gap_arrival + cpu_process[i-1].arrivaltime;
-    }
-
-
-    // cpu_process[0].arrivaltime = 0;
-    // cpu_process[1].arrivaltime = 3;
-    // cpu_process[2].arrivaltime = 5;
-    // cpu_process[3].arrivaltime = 6;
+    // for(i = 1; i < num_proc; i++){
+    //     gap_arrival = probability_rand();
+    //     cpu_process[i].arrivaltime = gap_arrival + cpu_process[i-1].arrivaltime;
+    // }
+    cpu_process[1].arrivaltime = 1;
+    cpu_process[2].arrivaltime = 3;
+    cpu_process[3].arrivaltime = 5;
 
     cpu_process[0].servicetime = 5;
     cpu_process[1].servicetime = 7;
@@ -107,12 +106,12 @@ int main(){
         }
 
         printf("\n%d: ", curr_second);
-        for(i = 0; ready_queue[i].pid != 0; i++){
-            printf("[%d]%c:%d, ", i, ready_queue[i].pid,ready_queue[i].servicetime);
+        for(i = 0; ready_queue[0][i].pid != 0; i++){
+            printf("[%d]%c:%d, ", i, ready_queue[0][i].pid,ready_queue[0][i].servicetime);
         }
         printf("\nServe process: %c", serve_process.pid);
 
-        if((serve_process.servicetime == 0) && (ready_queue[0].pid == 0)){
+        if((serve_process.servicetime == 0) && (ready_queue[0][0].pid == 0)){
             is_done = 1;
             printf("\n\nRound Robin Done!");
         }
@@ -136,23 +135,41 @@ int main(){
 }
 
 void push_ready_queue(struct process this_proc){
+    int index = get_array_slot(ready_queue[prev_ready_queue]);
 
-    if(top_stack == MAX_PROC - 1){
-        printf("Stack overflow!");
+    // if(top_stack == MAX_PROC - 1){
+    //     printf("Stack overflow!");
+    // }
+
+   if(index != -1){
+        ready_queue[prev_ready_queue][index] = this_proc;
+   }else{
+       printf("\nNo empty slot at ready_queue[%d]", prev_ready_queue);
+   }
+
+    // ready_queue[0][top_stack] = this_proc;
+
+    // top_stack++;
+}
+
+int get_array_slot(struct process array[]){
+    int index;
+
+    for(index = 0; ready_queue[prev_ready_queue][index].pid != 0 && index < MAX_PROC; index++){}
+    if(index != MAX_PROC){
+        return index;
+    }else{
+        return -1;
     }
     
-    ready_queue[top_stack] = this_proc;
-
-    top_stack++;
-
 }
 
 struct process pull_out_ready_queue(int array_index){
     struct process this_proc;
-    this_proc = ready_queue[array_index];
+    this_proc = ready_queue[0][array_index];
 
     for(; array_index < MAX_PROC; array_index++){
-        ready_queue[array_index] = ready_queue[array_index+1];
+        ready_queue[0][array_index] = ready_queue[0][array_index+1];
     }
 
     top_stack--;
@@ -171,7 +188,6 @@ void serving(){
 }
 
 int probability_rand(){
-    
     rand_val = rand()%9;
     if(rand_val >= 6 && rand_val <= 8 && rand()%100 < 10){
         return rand_val;
