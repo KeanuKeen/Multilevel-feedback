@@ -36,7 +36,8 @@ int i = 0,
     final_val,
     rand_val,
     next_ready_queue,
-    curr_ready_queue = -1;
+    curr_ready_queue = -1,
+    temp_curr_ready_queue = 0;
 
 char timeable[MAX_TIME];
 
@@ -49,12 +50,9 @@ int main(){
 
     srand (time(NULL));
 
-    printf("test");
     for(n = 0; n < MAX_QUEUE; n++){
         memset(ready_queue[n], '\0', sizeof(ready_queue[n]));
     }
-
-    // set all ready_queue elements to '0' to define a element is empty
 
     cpu_process[0].pid = 'A';
     cpu_process[1].pid = 'B';
@@ -82,64 +80,63 @@ int main(){
         printf("%d \n", cpu_process[i].servicetime);
     }
 
-    for(;(is_done != 1) && (curr_second != 25); curr_second++){
+    for(;(is_done != 1) && (curr_second != 20); curr_second++){
 
         printf("\n-----------");
+        printf("\n@ t = %d", curr_second);
+        // printf("\nCurr_ready_queue = %d", curr_ready_queue);
         if((curr_second == cpu_process[proc_pointer].arrivaltime) && (proc_pointer < num_proc)){
             printf("\nProcess %c arrived", cpu_process[proc_pointer].pid);
-            push_ready_queue(cpu_process[proc_pointer]);
-            printf("\n%c pushed to ready_queue[%d] from arrival", cpu_process[proc_pointer].pid, next_ready_queue);
+            // printf("\ndebug: crq: %d", curr_ready_queue);
+            push_ready_queue(cpu_process[proc_pointer], 1, curr_ready_queue);
+            // printf("\ndebug: crq: %d", curr_ready_queue);
             proc_pointer++;
+            
         }
 
         if(serve_process.servicetime == 0){
             is_serving = 0;
             slice_counter = 0;
+            curr_ready_queue = -1;
         }else if((slice_counter == time_slice) && (serve_process.servicetime != 0)){
-            // printf("\npushed back at current: %d", curr_ready_queue);
-            push_ready_queue(serve_process);
-            printf("\n%c pushed back to ready_queue[%d] from cpu process with slice:%d time_slice:%d", serve_process.pid, next_ready_queue, slice_counter,  time_slice);
+            // printf("\ndebug: crq: %d", curr_ready_queue);
+            push_ready_queue(serve_process, 0, curr_ready_queue);
             is_serving = 0;
             slice_counter = 0;
-            curr_ready_queue = -1;
+            // curr_ready_queue = -1;
         }
 
         if(is_serving == 1){
+           
+            // printf("\nServing process %c\nSlice counter = %d\nRQ time slice = %d", serve_process.pid, slice_counter-1, time_slice);
+            
            serving(time_slice);
         }else if(is_serving != 1){
-            // printf("\nqueue[0]: %c ", ready_queue[0].pid);
+            curr_ready_queue = -1;
             serve_process = pull_out_ready_queue();
-            // printf("pid: %c time: %d", serve_p rocess.pid, serve_process.servicetime);
             is_serving = 1;
             serving(time_slice);
-            curr_ready_queue = -1;
+            // printf("\nServing process %c\nSlice counter = %d\nRQ time slice = %d", serve_process.pid, slice_counter-1, time_slice);
         }
 
-        printf("\n%d: ", curr_second);
         for(n = 0; n < 3; n++){
             printf("\nready_queue[%d]: ", n);
             for(i = 0; ready_queue[n][i].pid != 0; i++){
                 printf("[%d]%c:%d, ", i, ready_queue[n][i].pid,ready_queue[n][i].servicetime);
             }
         }
-        printf("\nServe process: %c", serve_process.pid);
+        printf("\n\nServing process: %c", serve_process.pid);
+        // printf("\nCurr_ready_queue = %d", curr_ready_queue);
 
         for(n = 0; (n < MAX_QUEUE) && (ready_queue[n][0].pid != 0); n++){
-            
+            if((serve_process.servicetime == 0) && (n == MAX_QUEUE)){
+                is_done = 1;
+                printf("\n\nRound Robin Done!");
+            }
         }
-        if((serve_process.servicetime == 0) && (n == MAX_QUEUE)){
-            is_done = 1;
-            printf("\n\nRound Robin Done!");
-        }
+        
 
     }
-    // push_ready_queue(ready_queue[3]);
-    // serve_process = pull_out_ready_queue(0);
-    // printf("\n%c", serve_process.pid);
-    // printf("\nReady Queue: ");
-    // for(i = 0; ready_queue[i].pid != 0; i++){
-    //     printf("%c", ready_queue[i].pid);
-    // }
 
     printf("\nFinished at %d!", curr_second - 1);
     printf("\nRandom(1-8): ");
@@ -150,29 +147,33 @@ int main(){
     return 0;
 }
 
-void push_ready_queue(struct process this_proc){
-    int index;
+void push_ready_queue(struct process this_proc, int arrived, int curr_ready_queue){
+    int index, temp;
+
     next_ready_queue = curr_ready_queue + 1;
 
-    // printf("\ndebug: next queue = %d", next_ready_queue);
-    index = get_array_slot(ready_queue[next_ready_queue]);
-    printf("\ndebug: next:%d", curr_ready_queue);
-     
+    if(arrived == 1){
+        index = get_array_slot(ready_queue[0]);
+    }else{
+        index = get_array_slot(ready_queue[next_ready_queue]);
+    }
+    
 
-    // if(top_stack == MAX_PROC - 1){
-    //     printf("Stack overflow!");
-    // }
+    if(index != -1){
+         if(arrived == 1){
+            ready_queue[0][index] = this_proc;
+        }else{
+            ready_queue[next_ready_queue][index] = this_proc;
+        }
+        if(arrived == 1){
+            printf("\nPushed process %c onto ready_queue[%d]", this_proc.pid, 0);
+        }else{
+            printf("\nPushed back process %c onto ready_queue[%d]", this_proc.pid, next_ready_queue);
+        }
+    }else{
+        printf("\nNo empty slot at ready_queue[%d]", next_ready_queue);
+    }
 
-   if(index != -1){
-        ready_queue[next_ready_queue][index] = this_proc;
-   }else{
-       printf("\nNo empty slot at ready_queue[%d]", next_ready_queue);
-   }
-
-
-    // ready_queue[0][top_stack] = this_proc;
-
-    // top_stack++;
 }
 
 int get_array_slot(struct process array[]){
@@ -211,9 +212,9 @@ struct process pull_out_ready_queue(){
     time_slice = pow(2, n);
 
     curr_ready_queue = n;
-   
+    temp_curr_ready_queue = curr_ready_queue;
 
-    // printf("\ndebug: proc.pid = %c", ready_queue[0][0].pid);
+    printf("\nPulled process %c from ready_queue[%d]", this_proc.pid, curr_ready_queue);
 
     for(; index < MAX_PROC; index++){
         ready_queue[n][index] = ready_queue[n][index+1];
@@ -227,7 +228,6 @@ void serving(int time_slice){
     if(slice_counter != time_slice && (serve_process.servicetime != 0)){
         serve_process.servicetime--;
         is_serving = 1;
-        printf("\nslice: %d time_slice:%d", slice_counter,time_slice);
         slice_counter++;
     }
 
