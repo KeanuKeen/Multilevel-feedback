@@ -26,7 +26,6 @@ int i = 0,
     curr_second = 0,
     is_done = 0,
     proc_pointer = 0,
-    curr_proc_pointer = 0,
     is_serving = 0,
     done_serving = 0,
     slice_counter = 0,
@@ -36,7 +35,7 @@ int i = 0,
     next_ready_queue,
     curr_ready_queue = -1;
 
-char timeable[MAX_TIME];
+char timeable_process[MAX_TIME];
 
 struct process ready_queue[MAX_QUEUE][MAX_PROC+1];
 struct process serve_process; // +1 is to have a empty element used to copy into elements to be removed.
@@ -97,7 +96,7 @@ int main(){
         }
 
         if(is_serving == 1){            
-           serving(time_slice);
+            serving(time_slice);
         }else if(is_serving != 1){
             serve_process = pull_out_ready_queue();
             is_serving = 1;
@@ -132,16 +131,11 @@ void push_ready_queue(struct process this_proc, int arrived){
     }else{
         array_index = next_ready_queue;
     }
-
-    index = get_array_slot(ready_queue[array_index]);
     
+    index = get_array_slot(ready_queue[array_index]);
     if(index != -1){
         ready_queue[array_index][index] = this_proc;
     }
-    // else{
-    //     printf("\nNo empty slot at ready_queue[%d]", next_ready_queue);
-    // }
-
 }
 
 int get_array_slot(struct process array[]){
@@ -168,10 +162,10 @@ struct process pull_out_ready_queue(){
         }
     }
     n--;
-
-    this_proc = ready_queue[n][0];
-    time_slice = pow(2, n);
     curr_ready_queue = n;
+
+    this_proc = ready_queue[curr_ready_queue][0];
+    time_slice = pow(2, curr_ready_queue);
 
     for(; index < MAX_PROC; index++){
         ready_queue[n][index] = ready_queue[n][index+1];
