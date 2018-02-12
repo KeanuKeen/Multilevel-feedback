@@ -85,16 +85,8 @@ int main(){
     }
 
     for(;is_done != 1; curr_second++){
-        // printf("\n%d", curr_second);
-        // printf("\n%d>9", curr_second);
-        // if(curr_second > 10){
-        //     printf("\nsec: %d", curr_second);
-        // }
-
-        // printf("\n\nt: %d", curr_second);
 
         if((curr_second == cpu_process[proc_pointer].arrivaltime) && (proc_pointer < num_proc)){
-            // printf("\nProcess %c arrived", cpu_process[proc_pointer].pid);
             push_array(cpu_process[proc_pointer], MAX_PROC+1, ready_queue[0]);
             proc_pointer++;
         }
@@ -104,7 +96,6 @@ int main(){
             slice_counter = 0;
         }else if((slice_counter == time_slice) && (serve_process.servicetime != 0)){
             next_ready_queue = curr_ready_queue + 1;
-            // printf("\n%d", next_ready_queue);
             push_array(serve_process, MAX_PROC+1, ready_queue[next_ready_queue]);
             is_serving = 0;
             slice_counter = 0;
@@ -118,7 +109,6 @@ int main(){
             serving(time_slice);
         }
 
-        // printf("\nServing process: %c", serve_process.pid);
         push_array(serve_process, MAX_TIME, timechart_process);
 
         for(n = 0; (n < MAX_QUEUE) && (ready_queue[n][0].pid == 0); n++){}
@@ -131,7 +121,6 @@ int main(){
 
     printf("\nFinished at %d!\n", curr_second - 1);
     for(i = 0; timechart_process[i].pid != 0; i++){
-        // printf("\n%d > 9", curr_second);
         if(i < 10){
             printf("%3c", timechart_process[i].pid);
         }else{
@@ -140,13 +129,8 @@ int main(){
     }
     printf("\n0  ");
     for(i = 1; timechart_process[i-1].pid != 0; i++){
-        // printf("\n%d > 9", curr_second);
         printf("%d  ", i);
     }
-    // printf("\nRandom(1-8): ");
-    // for(i = 0; i < 100; i++){
-    //     printf("%d, ", probability_rand());
-    // }
 
     return 0;
 }
