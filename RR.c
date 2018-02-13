@@ -15,6 +15,7 @@
 // int get_array_slot(struct process array[], int max_index);
 
 void push_array();
+// void printAtArrival();
 struct process pull_out_ready_queue();
 void serving();
 int probability_rand();
@@ -22,8 +23,8 @@ int get_array_slot();
 
 struct process {
     char pid;
-    int arrivaltime, servicetime, remainingtime;
-    int starttime, finishtime, turnaroundtime, waitingtime;
+    int arrivalTime, serviceTime, remainingTime;
+    int startTime, finishTime, turnaroundTime, waitingTime;
 };
 
 int i = 0,
@@ -39,7 +40,9 @@ int i = 0,
     time_slice,
     rand_val,
     next_ready_queue,
-    curr_ready_queue = -1;
+    curr_ready_queue = -1,
+    start_time,
+    end_time;
 
 struct process timechart_process[MAX_TIME];
 struct process ready_queue[MAX_QUEUE][MAX_PROC+1];
@@ -63,38 +66,41 @@ int main(){
     cpu_process[2].pid = 'C';
     cpu_process[3].pid = 'D';
 
-    cpu_process[0].arrivaltime = 0;
+    cpu_process[0].arrivalTime = 0;
     // for(i = 1; i < num_proc; i++){
     //     gap_arrival = probability_rand();
-    //     cpu_process[i].arrivaltime = gap_arrival + cpu_process[i-1].arrivaltime;
+    //     cpu_process[i].arrivalTime = gap_arrival + cpu_process[i-1].arrivalTime;
     // }
-    cpu_process[1].arrivaltime = 1;
-    cpu_process[2].arrivaltime = 2;
-    cpu_process[3].arrivaltime = 3;
+    cpu_process[1].arrivalTime = 1;
+    cpu_process[2].arrivalTime = 4;
+    cpu_process[3].arrivalTime = 7;
 
-    cpu_process[0].servicetime = 2;
-    cpu_process[1].servicetime = 4;
-    cpu_process[2].servicetime = 6;
-    cpu_process[3].servicetime = 8;
+    cpu_process[0].serviceTime = 2;
+    cpu_process[1].serviceTime = 4;
+    cpu_process[2].serviceTime = 6;
+    cpu_process[3].serviceTime = 8;
+
+    
+
 
 
     for(i = 0; i < num_proc; i++){
         printf("%c ", cpu_process[i].pid);
-        printf("%d ", cpu_process[i].arrivaltime);
-        printf("%d \n", cpu_process[i].servicetime);
+        printf("%d ", cpu_process[i].arrivalTime);
+        printf("%d \n", cpu_process[i].serviceTime);
     }
 
     for(;is_done != 1; curr_second++){
 
-        if((curr_second == cpu_process[proc_pointer].arrivaltime) && (proc_pointer < num_proc)){
+        if((curr_second == cpu_process[proc_pointer].arrivalTime) && (proc_pointer < num_proc)){
             push_array(cpu_process[proc_pointer], MAX_PROC+1, ready_queue[0]);
             proc_pointer++;
         }
 
-        if(serve_process.servicetime == 0){
+        if(serve_process.serviceTime == 0){
             is_serving = 0;
             slice_counter = 0;
-        }else if((slice_counter == time_slice) && (serve_process.servicetime != 0)){
+        }else if((slice_counter == time_slice) && (serve_process.serviceTime != 0)){
             next_ready_queue = curr_ready_queue + 1;
             push_array(serve_process, MAX_PROC+1, ready_queue[next_ready_queue]);
             is_serving = 0;
@@ -112,14 +118,20 @@ int main(){
         push_array(serve_process, MAX_TIME, timechart_process);
 
         for(n = 0; (n < MAX_QUEUE) && (ready_queue[n][0].pid == 0); n++){}
-        if((serve_process.servicetime == 0) && (n == MAX_QUEUE)){
+        if((serve_process.serviceTime == 0) && (n == MAX_QUEUE)){
             is_done = 1;
             printf("\nMulti-level feedback Done!\n");
         }
 
     }
 
+    proc_pointer = 0;
+
     printf("\nFinished at %d!\n", curr_second - 1);
+
+    start_time = 0;
+    end_time = 20;
+
     for(i = 0; timechart_process[i].pid != 0; i++){
         if(i < 10){
             printf("%3c", timechart_process[i].pid);
@@ -131,7 +143,16 @@ int main(){
     for(i = 1; timechart_process[i-1].pid != 0; i++){
         printf("%d  ", i);
     }
+    printf("\n");
+    printAtArrival(0, '^',' ', cpu_process);
+    printf("\n");
+    printAtArrival(0, '|',' ', cpu_process);
+    printf("\n");
+    printAtArrival(1, ' ',' ', cpu_process);
+     printf("\n");
+    printAtArrival(2, ' ',' ', cpu_process);
 
+    printf("\n\n");
     return 0;
 }
 
@@ -140,7 +161,6 @@ void push_array(struct process this_proc, int max_index, struct process array[])
     next_ready_queue = curr_ready_queue + 1;
 
     index = get_array_slot(array, max_index);
-    // printf("\n index: %d", index);
     if(index != -1){
         array[index] = this_proc;
     }
@@ -182,10 +202,13 @@ struct process pull_out_ready_queue(){
 }
 
 void serving(int time_slice){
-    if(slice_counter != time_slice && (serve_process.servicetime != 0)){
-        serve_process.servicetime--;
+    if(slice_counter != time_slice && (serve_process.serviceTime != 0)){
+        serve_process.serviceTime--;
         is_serving = 1;
         slice_counter++;
+    }
+    if(serve_process.serviceTime == 0){
+        serve_process.finishTime = curr_second-1;
     }
 }
 
@@ -197,3 +220,23 @@ int probability_rand(){
         return ((rand()%5) + 1);
     }
 }
+
+void printAtArrival(int print, char arrived, char notArrived, struct process cpu[]){
+    for(i = 0, proc_pointer = 0; proc_pointer < num_proc; i++){
+        if(cpu[proc_pointer].arrivalTime == i){
+            if(print == 1){
+                printf("%c  ", cpu[proc_pointer].pid);
+            }else if(print == 2){
+                printf("%d  ", cpu[proc_pointer].serviceTime);
+            }else{
+                printf("%c  ", arrived);
+            }
+            
+            proc_pointer++;
+        }else{
+            printf("%c  ", notArrived);
+        }
+    }
+}
+
+
