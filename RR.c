@@ -16,6 +16,7 @@ int get_array_slot(struct process array[], int max_index);
 int isTimeChartDone(struct process timechart[], int i, int end);
 void printAtArrival(int print, char arrived, char notArrived, struct process cpu[]);
 int sumOfService();
+int foundRQ();
 
 struct process {
     char pid;
@@ -39,7 +40,8 @@ int i = 0,
     next_ready_queue,
     curr_ready_queue = -1,
     start_time,
-    end_time;
+    end_time,
+    found = 0;
 
 char user_ans;
 
@@ -103,8 +105,8 @@ int main(){
     //     gap_arrival = probability_rand();
     //     cpu_process[i].arrivalTime = gap_arrival + cpu_process[i-1].arrivalTime;
     // }
-    cpu_process[1].arrivalTime = 1;
-    cpu_process[2].arrivalTime = 2;
+    cpu_process[1].arrivalTime = 2;
+    cpu_process[2].arrivalTime = 3;
     // cpu_process[3].arrivalTime = 7;
     // cpu_process[4].arrivalTime = 9;
     // cpu_process[5].arrivalTime = 11;
@@ -112,7 +114,7 @@ int main(){
     // cpu_process[7].arrivalTime = 15;
     // cpu_process[8].arrivalTime = 21;
 
-    cpu_process[0].serviceTime = 3;
+    cpu_process[0].serviceTime = 1;
     cpu_process[1].serviceTime = 5;
     cpu_process[2].serviceTime = 5;
     // cpu_process[3].serviceTime = 8;
@@ -148,10 +150,14 @@ int main(){
 
         if(is_serving == 1){            
             serving(time_slice);
-        }else if(is_serving != 1){
+        }else if(is_serving != 1 && (foundRQ() != -1)){
             serve_process = pull_out_ready_queue();
             is_serving = 1;
             serving(time_slice);
+        }else if(foundRQ() == -1){
+            serve_process.pid = ' ';
+            is_serving = 0;
+            printf("\nnot found!");
         }
 
         push_array(serve_process, MAX_TIME, timechart_process);
@@ -202,11 +208,8 @@ struct process pull_out_ready_queue(){
         index = 0;
     struct process this_proc;
 
-    for(n = 0; (found == 0) && (n < MAX_QUEUE); n++){
-        if(ready_queue[n][0].pid != 0){
-            found = 1;
-        }
-    }
+    n = foundRQ();
+    
     n--;
     curr_ready_queue = n;
 
@@ -218,6 +221,20 @@ struct process pull_out_ready_queue(){
     }
 
     return this_proc;
+}
+
+int foundRQ(){
+    for(n = 0, found = 0; (found == 0) && (n < MAX_QUEUE); n++){
+        if(ready_queue[n][0].pid != 0){
+            found = 1;
+        }
+    }
+    if(found == 0){
+        n = -1;
+        
+    }
+    printf("\nfound: %d at n: %d with pid: %c", found, n-1, ready_queue[n-1][0].pid);
+    return n;
 }
 
 void serving(int time_slice){
