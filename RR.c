@@ -4,7 +4,7 @@
 #include <math.h>
 #include <string.h>
 #define MAX_PROC 999
-#define MAX_TIME 99
+#define MAX_TIME 999
 #define MAX_QUEUE 10
 
 void push_array(struct process this_proc, int max_index, struct process array[]);
@@ -15,6 +15,7 @@ int probability_rand();
 int get_array_slot(struct process array[], int max_index);
 int isTimeChartDone(struct process timechart[], int i, int end);
 void printAtArrival(int print, char arrived, char notArrived, struct process cpu[]);
+int sumOfService();
 
 struct process {
     char pid;
@@ -24,7 +25,7 @@ struct process {
 
 int i = 0,
     n = 0,
-    num_proc = 9,
+    num_proc,
     curr_second = 0,
     is_done = 0,
     proc_pointer = 0,
@@ -40,6 +41,8 @@ int i = 0,
     start_time,
     end_time;
 
+char user_ans;
+
 struct process timechart_process[MAX_TIME];
 struct process ready_queue[MAX_QUEUE][MAX_PROC+1];
 struct process serve_process; // +1 is to have a empty element used to copy into elements to be removed.
@@ -47,7 +50,16 @@ struct process serve_process; // +1 is to have a empty element used to copy into
 void printTimeChart(int start_time, int end_time, struct process timechart[], struct process cpu_process[]);
 
 int main(){
+    printf("\nHow many processes to simulate? [MAX=999] : ");
+    scanf(" %d", &num_proc);
+    printf("\nWould you like to [R]andomize data or [M]anual input? : ");
+    scanf(" %c", &user_ans);
+
     struct process cpu_process[num_proc];
+
+    for(i = 0; i < num_proc; i++){
+        cpu_process[i].pid = (char)65+i;
+    }
 
     srand (time(NULL));
 
@@ -58,15 +70,33 @@ int main(){
         memset(timechart_process, '\0', sizeof(timechart_process));
     }
 
+    // if(user_ans == 'R'){
+    //     cpu_process[0].arrivalTime = 0;
+    //     for(i = 1; i < num_proc; i++){
+    //         gap_arrival = probability_rand();
+    //         cpu_process[i].arrivalTime = gap_arrival + cpu_process[i-1].arrivalTime;
+    //         cpu_process[i].serviceTime = probability_rand();
+    //         printf("");
+    //     }
+    // // }else if(user_ans == 'M'){
+    // //     for(i = 0; i < num_proc; i++){
+    // //         printf("\n\nProcess %c:", cpu_process[i].pid);
+    // //         printf("\nArrival time: ");
+    // //         scanf(" %d", &cpu_process[i].arrivalTime);
+    // //         printf("\nService time: ");
+    // //         scanf(" %d", &cpu_process[i].serviceTime);
+    // //     }
+    // }
+
     cpu_process[0].pid = 'A';
     cpu_process[1].pid = 'B';
     cpu_process[2].pid = 'C';
-    cpu_process[3].pid = 'D';
-    cpu_process[4].pid = 'E';
-    cpu_process[5].pid = 'F';
-    cpu_process[6].pid = 'G';
-    cpu_process[7].pid = 'H';
-    cpu_process[8].pid = 'I';
+    // cpu_process[3].pid = 'D';
+    // cpu_process[4].pid = 'E';
+    // cpu_process[5].pid = 'F';
+    // cpu_process[6].pid = 'G';
+    // cpu_process[7].pid = 'H';
+    // cpu_process[8].pid = 'I';
 
     cpu_process[0].arrivalTime = 0;
     // for(i = 1; i < num_proc; i++){
@@ -74,28 +104,29 @@ int main(){
     //     cpu_process[i].arrivalTime = gap_arrival + cpu_process[i-1].arrivalTime;
     // }
     cpu_process[1].arrivalTime = 1;
-    cpu_process[2].arrivalTime = 4;
-    cpu_process[3].arrivalTime = 7;
-    cpu_process[4].arrivalTime = 9;
-    cpu_process[5].arrivalTime = 11;
-    cpu_process[6].arrivalTime = 14;
-    cpu_process[7].arrivalTime = 15;
-    cpu_process[8].arrivalTime = 21;
+    cpu_process[2].arrivalTime = 2;
+    // cpu_process[3].arrivalTime = 7;
+    // cpu_process[4].arrivalTime = 9;
+    // cpu_process[5].arrivalTime = 11;
+    // cpu_process[6].arrivalTime = 14;
+    // cpu_process[7].arrivalTime = 15;
+    // cpu_process[8].arrivalTime = 21;
 
-    cpu_process[0].serviceTime = 2;
-    cpu_process[1].serviceTime = 4;
-    cpu_process[2].serviceTime = 6;
-    cpu_process[3].serviceTime = 8;
-    cpu_process[4].serviceTime = 3;
-    cpu_process[5].serviceTime = 5;
-    cpu_process[6].serviceTime = 1;
-    cpu_process[7].serviceTime = 2; 
-    cpu_process[8].serviceTime = 6; 
+    cpu_process[0].serviceTime = 3;
+    cpu_process[1].serviceTime = 5;
+    cpu_process[2].serviceTime = 5;
+    // cpu_process[3].serviceTime = 8;
+    // cpu_process[4].serviceTime = 3;
+    // cpu_process[5].serviceTime = 5;
+    // cpu_process[6].serviceTime = 1;
+    // cpu_process[7].serviceTime = 2; 
+    // cpu_process[8].serviceTime = 6; 
 
+    printf("\nPID\tArrival\t Service\n");
     for(i = 0; i < num_proc; i++){
-        printf("%c ", cpu_process[i].pid);
-        printf("%d ", cpu_process[i].arrivalTime);
-        printf("%d \n", cpu_process[i].serviceTime);
+        printf(" %c\t", cpu_process[i].pid);
+        printf("  %d\t", cpu_process[i].arrivalTime);
+        printf("    %d \n", cpu_process[i].serviceTime);
     }
 
     for(;is_done != 1; curr_second++){
@@ -135,7 +166,7 @@ int main(){
 
     proc_pointer = 0;
 
-    printf("\nFinished at %d!\n", curr_second - 1);
+    printf("\nFinished at %d!\n", curr_second);
     for( start_time=0, end_time=20;isTimeChartDone(timechart_process,start_time,end_time)!=1;){
         printTimeChart(start_time, end_time, timechart_process, cpu_process);
     }
@@ -199,7 +230,7 @@ void serving(int time_slice){
         serve_process.finishTime = curr_second-1;
     }
 }
-
+// int probability_set = {{0,4,80}, {5,8,10}}
 int probability_rand(){
     rand_val = rand()%9;
     if(rand_val >= 6 && rand_val <= 8 && rand()%100 < 10){
@@ -224,14 +255,11 @@ void printAtArrival(int print, char arrived, char notArrived, struct process cpu
                 printf("%c  ", arrived);
             }
             proc_pointer++;
-            if(i >= 10){
-                printf(" ");
-            }
         }else{
             printf("%c  ", notArrived);
-            if(i >= 10){
-                printf(" ");
-            }
+        }
+        if(i >= 10){
+            printf(" ");
         }
     }
 }
@@ -275,3 +303,6 @@ int isTimeChartDone(struct process timechart[], int i, int end){
     return 1;
 }
 
+int sumOfService(){
+    return 0;
+}
