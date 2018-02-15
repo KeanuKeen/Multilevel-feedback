@@ -3,24 +3,18 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
-#define MAX_PROC 10
+#define MAX_PROC 999
 #define MAX_TIME 99
 #define MAX_QUEUE 10
 
-
-// void push_array(struct process this_proc, int max_index, struct process array[]);
-// struct process pull_out_ready_queue();
-// void serving(int time_slice);
-// int probability_rand();
-// int get_array_slot(struct process array[], int max_index);
-
-void push_array();
+void push_array(struct process this_proc, int max_index, struct process array[]);
 // void printAtArrival();
 struct process pull_out_ready_queue();
-void serving();
+void serving(int time_slice);
 int probability_rand();
-int get_array_slot();
-int isTimeChartDone();
+int get_array_slot(struct process array[], int max_index);
+int isTimeChartDone(struct process timechart[], int i, int end);
+void printAtArrival(int print, char arrived, char notArrived, struct process cpu[]);
 
 struct process {
     char pid;
@@ -30,10 +24,11 @@ struct process {
 
 int i = 0,
     n = 0,
-    num_proc = 4,
+    num_proc = 9,
     curr_second = 0,
     is_done = 0,
     proc_pointer = 0,
+    temp_proc_pointer = 0,
     is_serving = 0,
     done_serving = 0,
     slice_counter = 0,
@@ -49,7 +44,7 @@ struct process timechart_process[MAX_TIME];
 struct process ready_queue[MAX_QUEUE][MAX_PROC+1];
 struct process serve_process; // +1 is to have a empty element used to copy into elements to be removed.
 
-void printTimeChart();
+void printTimeChart(int start_time, int end_time, struct process timechart[], struct process cpu_process[]);
 
 int main(){
     struct process cpu_process[num_proc];
@@ -67,6 +62,11 @@ int main(){
     cpu_process[1].pid = 'B';
     cpu_process[2].pid = 'C';
     cpu_process[3].pid = 'D';
+    cpu_process[4].pid = 'E';
+    cpu_process[5].pid = 'F';
+    cpu_process[6].pid = 'G';
+    cpu_process[7].pid = 'H';
+    cpu_process[8].pid = 'I';
 
     cpu_process[0].arrivalTime = 0;
     // for(i = 1; i < num_proc; i++){
@@ -76,11 +76,21 @@ int main(){
     cpu_process[1].arrivalTime = 1;
     cpu_process[2].arrivalTime = 4;
     cpu_process[3].arrivalTime = 7;
+    cpu_process[4].arrivalTime = 9;
+    cpu_process[5].arrivalTime = 11;
+    cpu_process[6].arrivalTime = 14;
+    cpu_process[7].arrivalTime = 15;
+    cpu_process[8].arrivalTime = 21;
 
     cpu_process[0].serviceTime = 2;
     cpu_process[1].serviceTime = 4;
     cpu_process[2].serviceTime = 6;
     cpu_process[3].serviceTime = 8;
+    cpu_process[4].serviceTime = 3;
+    cpu_process[5].serviceTime = 5;
+    cpu_process[6].serviceTime = 1;
+    cpu_process[7].serviceTime = 2; 
+    cpu_process[8].serviceTime = 6; 
 
     for(i = 0; i < num_proc; i++){
         printf("%c ", cpu_process[i].pid);
@@ -126,12 +136,9 @@ int main(){
     proc_pointer = 0;
 
     printf("\nFinished at %d!\n", curr_second - 1);
-
-    start_time = 0;
-    end_time = 20;
-
-    printTimeChart(0, 20, timechart_process, cpu_process);
-    printTimeChart(20, 40, timechart_process, cpu_process);
+    for( start_time=0, end_time=20;isTimeChartDone(timechart_process,start_time,end_time)!=1;){
+        printTimeChart(start_time, end_time, timechart_process, cpu_process);
+    }
 
     printf("\n\n");
     return 0;
@@ -203,8 +210,11 @@ int probability_rand(){
 }
 
 void printAtArrival(int print, char arrived, char notArrived, struct process cpu[]){
+    proc_pointer = temp_proc_pointer;
     printf("\n");
-    for(i = 0, proc_pointer = 0; proc_pointer < num_proc; i++){
+    // printf("\n(%d<%d)&&(%d<%d)", proc_pointer, num_proc, start_time, end_time );
+    for(i = start_time; (proc_pointer < num_proc) && (i < end_time); i++){
+        // printf("\n%d == %d", proc_pointer, i);
         if(cpu[proc_pointer].arrivalTime == i){
             if(print == 1){
                 printf("%c  ", cpu[proc_pointer].pid);
@@ -213,17 +223,25 @@ void printAtArrival(int print, char arrived, char notArrived, struct process cpu
             }else{
                 printf("%c  ", arrived);
             }
-            
             proc_pointer++;
+            if(i >= 10){
+                printf(" ");
+            }
         }else{
             printf("%c  ", notArrived);
+            if(i >= 10){
+                printf(" ");
+            }
         }
     }
 }
 
-void printTimeChart(int start_time, int end_time, struct process timechart[], struct process cpu_process[]){
-    printf("\n");
-    for(i = start_time; (timechart[i].pid != 0) && (i < end_time); i++){
+void printTimeChart(int start, int end, struct process timechart[], struct process cpu_process[]){
+    if(isTimeChartDone(timechart, start, end) == 1){
+        printf("\nDone!");
+    }
+    printf("\n\n");
+    for(i = start; (timechart[i].pid != 0) && (i < end); i++){
         if(i < 10){
             printf("%3c", timechart[i].pid);
         }else{
@@ -231,27 +249,29 @@ void printTimeChart(int start_time, int end_time, struct process timechart[], st
         }
     }
     printf("\n");
-    for(i = start_time; isTimeChartDone(timechart,i,end_time);i++){
-        printf("%d  ", i);
+    for(i = start; isTimeChartDone(timechart,i,end) == 0;){
+        i++;
+        printf("%d  ", i-1);
+        if(isTimeChartDone(timechart,i,end) == 1){
+            printf("%d", i);
+        }
     }
-    if(isTimeChartDone(timechart,i,end_time) == 1){
-        printf("%d", i);
-    }
-    // for(i = start_time; ((timechart[i].pid != 0)||((timechart[i-1].pid != 0)&&(timechart[i+1].pid != 0))) && (i < end_time); i++){
-    //     printf("%d  ", i);
-    // }
-    if(proc_pointer < num_proc){
-        printAtArrival(0, '^',' ', cpu_process);
+    if((proc_pointer < num_proc) && (isTimeChartDone(timechart,start,end) == 0)){
+        // printAtArrival(0, '^',' ', cpu_process);
+        temp_proc_pointer = proc_pointer;
         printAtArrival(0, '|',' ', cpu_process);
         printAtArrival(1, ' ',' ', cpu_process);
         printAtArrival(2, ' ',' ', cpu_process);
     }
+    start_time = end_time;
+    end_time += 20;
+    // printf("\nStart next: %d\nEnd next: %d", start_time, end_time);
 }
 
-int isTimeChartDone(struct process timechart[], int i, int end_time){
-    for(;(timechart[i].pid != 0) && (i < end_time);){
-        return 1;
+int isTimeChartDone(struct process timechart[], int i, int end){
+    for(;(timechart[i].pid != 0) && (i < end);){
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
