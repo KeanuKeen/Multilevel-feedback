@@ -19,8 +19,8 @@ int counter = 0;
 
 struct process {
     char pid;
-    int arrivalTime, serviceTime, remainingTime;
-    int startTime, finishTime, turnaroundTime, waitingTime;
+    int arrivalTime, serviceTime, tempServiceTime, remainingTime;
+    int startTime, finishTime, turnaroundTime, waitingTime, procIndex;
 };
 
 int i = 0,
@@ -46,9 +46,12 @@ char user_ans;
 
 struct process timechart_process[MAX_TIME];
 struct process ready_queue[MAX_QUEUE][MAX_PROC+1];
-struct process serve_process; // +1 is to have a empty element used to copy into elements to be removed.
-
+struct process serve_process; //+1 is to have a empty element used to copy into elements to be removed.
+struct process cpu_process[MAX_PROC];
+void released(struct process this_proc);
+int findProcessByPID(char pid);
 void printTimeChart(int start_time, int end_time, struct process timechart[], struct process cpu_process[]);
+
 
 int main(){
     srand(time(NULL));
@@ -56,8 +59,6 @@ int main(){
     scanf(" %d", &num_proc);
     printf("\nWould you like to [R]andomize data or [M]anual input? : ");
     scanf(" %c", &user_ans);
-
-    struct process cpu_process[num_proc];
 
     for(n = 0; n < MAX_QUEUE; n++){
         memset(ready_queue[n], '\0', sizeof(ready_queue[n]));
@@ -67,11 +68,11 @@ int main(){
     if(user_ans == 'R'){
         cpu_process[0].arrivalTime = 0;
         for(i = 0; i < num_proc; i++){
-            int config_1[] = {80,15,5};
+            int config_1[] = {2,80,18};
             gap_arrival = probability_rand(config_1);
             cpu_process[i].pid = (char)65+i;
             cpu_process[i+1].arrivalTime = gap_arrival + cpu_process[i].arrivalTime;
-            int config[] = {5,60,35};
+            int config[] = {10,50,40};
             cpu_process[i].serviceTime = probability_rand(config);
         }
     }else if(user_ans == 'M'){
@@ -82,6 +83,26 @@ int main(){
             printf("Service time: ");
             scanf(" %d", &cpu_process[i].serviceTime);
         }
+    }
+
+    // cpu_process[0].pid = 'A';
+    // cpu_process[1].pid = 'B';
+    // cpu_process[2].pid = 'C';
+    // cpu_process[3].pid = 'D';
+
+    // cpu_process[0].arrivalTime = 0;
+    // cpu_process[1].arrivalTime = 3;
+    // cpu_process[2].arrivalTime = 4;
+    // cpu_process[3].arrivalTime = 7;
+
+    // cpu_process[0].serviceTime = 1;
+    // cpu_process[1].serviceTime = 3;
+    // cpu_process[2].serviceTime = 2;
+    // cpu_process[3].serviceTime = 4;
+
+    for(i = 0; i < num_proc; i++){
+        cpu_process[i].procIndex = i;
+        cpu_process[i].tempServiceTime = cpu_process[i].serviceTime;
     }
 
     for(i = 0; i < num_proc; i++){
@@ -96,6 +117,7 @@ int main(){
             push_array(cpu_process[proc_pointer], MAX_PROC+1, ready_queue[0]);
             proc_pointer++;
         }
+        
         if(serve_process.serviceTime == 0){
             is_serving = 0;
             slice_counter = 0;
@@ -129,16 +151,20 @@ int main(){
     for( start_time=0, end_time=20;isTimeChartDone(timechart_process,start_time,end_time)!=1;){
         printTimeChart(start_time, end_time, timechart_process, cpu_process);
     }
-    printf("\n");
+    printf("\n\nPID\tArrival\tService\tStart  \tFinish\tTurnaround\n");
     for(i = 0; i < num_proc; i++){
         printf(" %c\t", cpu_process[i].pid);
-        printf("  %d\t", cpu_process[i].arrivalTime);
-        printf("   %d", cpu_process[i].serviceTime);
-        printf("  %d \n", cpu_process[i].startTime);
+        printf("   %d\t", cpu_process[i].arrivalTime);
+        printf("   %d\t", cpu_process[i].tempServiceTime);
+        printf(" %d\t", cpu_process[i].startTime);
+        printf("  %d\t", cpu_process[i].finishTime);
+        printf(" %d\n", cpu_process[i].turnaroundTime);
     }
     printf("\n\n");
     return 0;
 }
+
+
 
 void push_array(struct process this_proc, int max_index, struct process array[]){
     int index;
@@ -187,25 +213,47 @@ int foundRQ(){
     return n;
 }
 
+int findProcessByPID(char pid){
+    for(i = 0; (i < num_proc) && (cpu_process[i].pid != pid); i++){}
+    // i--;
+    return i;
+}
+
+void released(struct process this_proc){
+    serve_process.finishTime = curr_second+1;
+    serve_process.turnaroundTime = serve_process.finishTime - serve_process.arrivalTime;
+    i = findProcessByPID(serve_process.pid);
+    cpu_process[i] = serve_process;
+    // printf("\nProcess %c released at %d secs and started at %d!", cpu_process[i].pid, cpu_process[i].finishTime, cpu_process[i].startTime);
+}
+
 void serving(int time_slice){
+    if(serve_process.serviceTime == serve_process.tempServiceTime){
+        serve_process.startTime = curr_second;
+        // printf("\nProcess %c started at %d secs!", serve_process.pid, serve_process.startTime);
+    }
     if(slice_counter != time_slice && (serve_process.serviceTime != 0)){
         serve_process.serviceTime--;
         is_serving = 1;
         slice_counter++;
     }
     if(serve_process.serviceTime == 0){
-        serve_process.finishTime = curr_second-1;
+        released(serve_process);
+        printf("\nProcess %c started at %dsecs", cpu_process[i].pid, cpu_process[i].startTime);
+
     }
 }
+
 int probability_rand(int config[]){
-    rand_val = rand()%9;
-    if(rand_val >= 6 && rand_val <= 8 && rand()%100 < config[2]){
+    rand_val = rand()%8;
+    if((rand_val >= 7) && (rand_val <= 8) && (rand()%100 < config[2])){
         return rand_val;
-    }else if(rand_val >= 1 && rand_val <= 2 && rand()%100 < config[1]){
+    }else if((rand_val >= 1) && (rand_val <= 2) && (rand()%100 < config[0])){
         return rand_val;
-    }else if(rand_val >= 3 && rand_val <= 5 && rand()%100 < config[0]){
+    }else if((rand_val >= 3 && rand_val <= 6) && (rand()%100 < config[1])){
         return rand_val;
     }else{
+        printf("\ndebug");
         return ((rand()%5) + 1);
     }
 }
@@ -218,7 +266,7 @@ void printAtArrival(int print, char arrived, char notArrived, struct process cpu
             if(print == 1){
                 printf("%c  ", cpu[proc_pointer].pid);
             }else if(print == 2){
-                printf("%d  ", cpu[proc_pointer].serviceTime);
+                printf("%d  ", cpu[proc_pointer].tempServiceTime);
             }else{
                 printf("%c  ", arrived);
             }
@@ -238,11 +286,10 @@ void printTimeChart(int start, int end, struct process timechart[], struct proce
     }
     printf("\n\n");
     for(i = start; (timechart[i].pid != 0) && (i < end); i++){
-        if(timechart[i].pid == cpu_process[counter].pid){
-            printf("\n%c == %c : %d, %d\n", timechart[i].pid, cpu_process[counter].pid, i, counter);
-            cpu_process[counter].startTime = curr_second;
-            counter++;
-        }
+        // if(timechart[i].pid == cpu_process[counter].pid){
+        //     cpu_process[counter].startTime = curr_second;
+        //     counter++;
+        // }
         if(i < 10){
             printf("%3c", timechart[i].pid);
         }else{
@@ -273,3 +320,5 @@ int isTimeChartDone(struct process timechart[], int i, int end){
     }
     return 1;
 }
+
+
