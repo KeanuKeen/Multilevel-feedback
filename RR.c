@@ -6,6 +6,7 @@
 #define MAX_PROC 999
 #define MAX_TIME 999
 #define MAX_QUEUE 10
+#define MAX_CONFIG 30
 
 void push_array(struct process this_proc, int max_index, struct process array[]);
 struct process pull_out_ready_queue();
@@ -15,6 +16,8 @@ int get_array_slot(struct process array[], int max_index);
 int isTimeChartDone(struct process timechart[], int i, int end);
 void printAtArrival(int print, char arrived, char notArrived, struct process cpu[]);
 int foundRQ();
+int rand_min_max(int min, int max);
+int sum_terms(int min, int max);
 int counter = 0;
 
 struct process {
@@ -40,7 +43,8 @@ int i = 0,
     curr_ready_queue = -1,
     start_time,
     end_time,
-    found = 0;
+    found = 0,
+    calculated_config[MAX_CONFIG];;
 
 char user_ans;
 
@@ -64,6 +68,7 @@ int main(){
         memset(ready_queue[n], '\0', sizeof(ready_queue[n]));
     }
     memset(timechart_process, '\0', sizeof(timechart_process));
+    memset(calculated_config, '\0', sizeof(calculated_config));
 
     if(user_ans == 'R'){
         cpu_process[0].arrivalTime = 0;
@@ -245,17 +250,43 @@ void serving(int time_slice){
 }
 
 int probability_rand(int config[]){
-    rand_val = rand()%8;
-    if((rand_val >= 7) && (rand_val <= 8) && (rand()%100 < config[2])){
-        return rand_val;
-    }else if((rand_val >= 1) && (rand_val <= 2) && (rand()%100 < config[0])){
-        return rand_val;
-    }else if((rand_val >= 3 && rand_val <= 6) && (rand()%100 < config[1])){
-        return rand_val;
-    }else{
-        printf("\ndebug");
-        return ((rand()%5) + 1);
+    int prob_value = rand()%100;
+    // int array_length = sizeof(*config)/sizeof(&config[0]);
+    int array_length = 3;
+    rand_val = 99;
+    printf("\n length of array config is %d", array_length);
+
+    // config[] = {10,70, 20};
+    memset(calculated_config, '\0', sizeof(calculated_config));
+    calculated_config[0] = config[0];
+    // for(i = 1; i < 3; i++){
+    //     // calculated_config[i] = sum_terms(calculated_config[i-1], config[1]);
+    //     // calculated_config[i] = 1;
+    //     // printf("\nprob_config[%d]: %d", i, calculated_config[i]);
+    // }
+    calculated_config[1] = config[1] + calculated_config[0];
+    calculated_config[2] = config[2] + calculated_config[1];
+    printf("\nprob_config[0]: %d", calculated_config[0]);
+    printf("\nprob_config[1]: %d", calculated_config[1]);
+    printf("\nprob_config[2]: %d", calculated_config[2]);
+    if(prob_value < calculated_config[0]){ // 0 - 9 (10%) probability 
+        rand_val = rand_min_max(1, 2); // 1- 2
+    }else if(prob_value <= calculated_config[1]){ // 10 - 79 (70%) probability
+        rand_val = rand_min_max(3, 6); // 1- 2
+    }else if(prob_value <= calculated_config[2]){ // 80 - 99 (20%) probability
+        rand_val = rand_min_max(7, 9); // 1- 2
     }
+    printf("\n rand_val: %d\n\n", rand_val);
+    return rand_val;
+}
+
+int rand_min_max(int min, int max){
+    return (rand()%max) + min;
+}
+
+int sum_terms(int prev, int curr){
+    printf("\nsum");
+    return prev+curr;
 }
 
 void printAtArrival(int print, char arrived, char notArrived, struct process cpu[]){
